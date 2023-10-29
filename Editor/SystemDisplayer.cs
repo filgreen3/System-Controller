@@ -18,6 +18,7 @@ namespace Filgreen3.SystemController.Editor
         private Assembly[] _assembles = new Assembly[0];
         private int _assemblyID;
         private int _typeID;
+        private Vector2 _scroll;
 
         private Dictionary<ISystem, bool> _systemsFolout = new Dictionary<ISystem, bool>();
 
@@ -41,6 +42,7 @@ namespace Filgreen3.SystemController.Editor
         {
             var list = _systemsContainer.GetComponentsInChildren<ISystem>();
 
+            _scroll = GUILayout.BeginScrollView(_scroll);
             foreach (var item in list)
             {
                 var obj = (UnityEngine.Object)item;
@@ -56,6 +58,7 @@ namespace Filgreen3.SystemController.Editor
                     }
                 }
             }
+            GUILayout.EndScrollView();
         }
 
         private void AddSystem()
@@ -192,6 +195,10 @@ namespace Filgreen3.SystemController.Editor
 
         private static bool IsAcceptedAssembly(Assembly assembly, Func<Type, bool> compere)
         {
+            if (assembly.IsDynamic || assembly.Location == "")
+            {
+                return false;
+            }
             foreach (var type in assembly.ExportedTypes)
             {
                 if (compere(type))
