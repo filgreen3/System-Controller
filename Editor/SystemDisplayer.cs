@@ -4,23 +4,17 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 using UnityEditor.SceneManagement;
-using System.Reflection;
-using System;
 using Filgreen3.SystemController;
+using System.Linq;
 
 namespace Filgreen3.SystemController.Editor
 {
-    public class SystemDisplayer : EditorWindow
+    public class SystemDisplayer : SystemInspectorWindow
     {
-        private SystemController _systemsContainer;
-        private int _index;
 
-        private Assembly[] _assembles = new Assembly[0];
-        private int _assemblyID;
-        private int _typeID;
         private Vector2 _scroll;
-
-        private Dictionary<ISystem, bool> _systemsFolout = new Dictionary<ISystem, bool>();
+        private Dictionary<Object, bool> _systemsFolout = new Dictionary<Object, bool>();
+        private System.Type _filterType = typeof(ISystem);
 
         [MenuItem("Tools/SystemController/Systems")]
         private static void ShowWindow()
@@ -30,7 +24,6 @@ namespace Filgreen3.SystemController.Editor
             window.Show();
         }
 
-
         private void OnEnable()
         {
             GetSceneSystem();
@@ -38,12 +31,81 @@ namespace Filgreen3.SystemController.Editor
             _assembles = System.AppDomain.CurrentDomain.GetAllAssembles(isSystemAcceptable);
         }
 
+        public override void OnGUI()
+        {
+            if (!_systemsContainer)
+            {
+                if (GUILayout.Button("Init Systems"))
+                {
+                    GetSceneSystem();
+                    if (_systemsContainer != null) return;
+                    var _systemsObject = new GameObject("<Systems>");
+                    _systemsContainer = _systemsObject.AddComponent<SystemController>();
+                    EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+                    EditorSceneManager.SaveOpenScenes();
+                    Debug.Log("Init SystemController");
+                }
+            }
+            else
+            {
+                UpperMenu();
+                DisplaySystem();
+                BottomMenu();
+            }
+        }
+
+        private void UpperMenu()
+        {
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("All"))
+            {
+                _filterType = typeof(MonoBehaviour);
+            }
+            if (GUILayout.Button("System"))
+            {
+                _filterType = typeof(ISystem);
+            }
+            GUILayout.EndHorizontal();
+        }
+
         private void DisplaySystem()
         {
-            var list = _systemsContainer.GetComponentsInChildren<ISystem>();
+            var list = _systemsContainer.GetComponentsInChildren(_filterType);
 
             _scroll = GUILayout.BeginScrollView(_scroll);
-            foreach (var item in list)
+            DisplayObjects(list.Cast<Object>().ToArray());
+            GUILayout.EndScrollView();
+        }
+
+
+        private void BottomMenu()
+        {
+            GUILayout.BeginHorizontal();
+            if (_assembles.Length > 0 && GUILayout.Button("+"))
+            {
+                AddSystem();
+            }
+
+            if (_assembles.Length > 0)
+            {
+                _typeID = EditorGUILayout.Popup(_typeID, GetSystems(_assembles[_assemblyID]));
+                EditorGUI.BeginChangeCheck();
+                _assemblyID = EditorGUILayout.Popup(_assemblyID, GetAssembles());
+                if (EditorGUI.EndChangeCheck())
+                {
+                    _typeID = 0;
+                }
+            }
+            if (GUILayout.Button(_assembles.Length > 0 ? "R" : "Refresh"))
+            {
+                OnEnable();
+            }
+            GUILayout.EndHorizontal();
+        }
+
+        private void DisplayObjects(params Object[] objects)
+        {
+            foreach (var item in objects)
             {
                 var obj = (UnityEngine.Object)item;
                 _systemsFolout.TryAdd(item, false);
@@ -58,155 +120,6 @@ namespace Filgreen3.SystemController.Editor
                     }
                 }
             }
-            GUILayout.EndScrollView();
-        }
-
-        private void AddSystem()
-        {
-            GUILayout.BeginHorizontal();
-            if (_assembles.Length > 0 && GUILayout.Button("+"))
-            {
-                var assembly = _assembles[_assemblyID];
-                var type = assembly.GetType(GetSystems(_assembles[_assemblyID])[_typeID]);
-                new GameObject(type.Name, type).transform.SetParent(_systemsContainer.transform);
-                EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
-                EditorSceneManager.SaveOpenScenes();
-                _assembles = System.AppDomain.CurrentDomain.GetAllAssembles(isSystemAcceptable);
-                _typeID = 0;
-                _assemblyID = 0;
-
-            }
-
-            if (_assembles.Length > 0)
-            {
-                _typeID = EditorGUILayout.Popup(_typeID, GetSystems(_assembles[_assemblyID]));
-                EditorGUI.BeginChangeCheck();
-                _assemblyID = EditorGUILayout.Popup(_assemblyID, GetAssembles());
-            }
-            if (EditorGUI.EndChangeCheck())
-            {
-                _typeID = 0;
-            }
-
-            GUILayout.EndHorizontal();
-        }
-
-        public void OnGUI()
-        {
-            if (!_systemsContainer)
-            {
-                if (GUILayout.Button("Init Systems"))
-                {
-                    var _systemsObject = new GameObject("Systems");
-                    _systemsContainer = _systemsObject.AddComponent<SystemController>();
-                    EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
-                    EditorSceneManager.SaveOpenScenes();
-                    Debug.Log("Init SystemController");
-                }
-            }
-            else
-            {
-                if (GUILayout.Button("Refresh"))
-                {
-                    OnEnable();
-                }
-                DisplaySystem();
-                AddSystem();
-            }
-        }
-
-        private void GetSceneSystem()
-        {
-            var array = SceneManager.GetActiveScene().GetRootGameObjects();
-            foreach (var item in array)
-            {
-                if (item.name == "Systems")
-                {
-                    if (!item.TryGetComponent<SystemController>(out _systemsContainer))
-                    {
-                        _systemsContainer = item.AddComponent<SystemController>();
-                    }
-                }
-            }
-        }
-
-        private Type[] GetSystemTypes(Assembly assembly)
-        {
-            var result = new List<Type>();
-            var types = assembly.GetTypes();
-            foreach (var type in types)
-            {
-                if (isSystemAcceptable(type))
-                {
-                    result.Add(type);
-                }
-            }
-            return result.ToArray();
-        }
-
-        private bool isSystemAcceptable(Type type) =>
-            type != null
-            && typeof(ISystem).IsAssignableFrom(type)
-            && type.IsClass
-            && !type.IsAbstract
-            && typeof(MonoBehaviour).IsAssignableFrom(type)
-            && !_systemsContainer.ContainType(type);
-
-        private string[] GetSystems(Assembly assembly)
-        {
-            var result = new List<string>();
-            var types = assembly.GetTypes();
-            foreach (var type in types)
-            {
-                if (isSystemAcceptable(type))
-                {
-                    result.Add(type.Name);
-                }
-            }
-            return result.ToArray();
-        }
-
-        private string[] GetAssembles()
-        {
-            var result = new List<string>();
-            foreach (var assembly in _assembles)
-            {
-                result.Add(assembly.GetName().Name);
-            }
-            return result.ToArray();
-        }
-    }
-
-    public static class ClassFindHelper
-    {
-        public static Assembly[] GetAllAssembles(this System.AppDomain aAppDomain, Func<Type, bool> compereFunc)
-        {
-            var result = new List<Assembly>();
-            var assemblies = aAppDomain.GetAssemblies();
-            foreach (var assembly in assemblies)
-            {
-                if (IsAcceptedAssembly(assembly, compereFunc))
-                {
-                    result.Add(assembly);
-                }
-            }
-            return result.ToArray();
-        }
-
-        private static bool IsAcceptedAssembly(Assembly assembly, Func<Type, bool> compere)
-        {
-            if (assembly.IsDynamic || assembly.Location == "")
-            {
-                return false;
-            }
-            foreach (var type in assembly.ExportedTypes)
-            {
-                if (compere(type))
-                {
-                    return true;
-                }
-            }
-            return false;
         }
     }
 }

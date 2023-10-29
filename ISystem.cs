@@ -1,7 +1,6 @@
-namespace Filgreen3.SystemController
-{
-    public interface ISystem
-    {
 
-    }
+public interface ISystem
+{
+
 }
+
