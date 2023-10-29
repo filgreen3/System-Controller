@@ -1,0 +1,17 @@
+{
+  "name": "com.filgreen3.systemcontroller",
+  "author": "KoroGames",
+  "displayName": "System-Controller",
+  "description": "System-Controller",
+  "unity": "2020.3",
+  "version": "0.0.1",
+  "keywords": [
+    "korogames"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/filgreen3/System-Controller"
+  },
+  "type": "",
+  "dependencies": {}
+}

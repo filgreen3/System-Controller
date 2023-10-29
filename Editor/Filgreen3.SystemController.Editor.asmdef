@@ -1,0 +1,18 @@
+{
+    "name": "Filgreen3.SystemController.Editor",
+    "rootNamespace": "Filgreen3.SystemController.Editor",
+    "references": [
+        "Filgreen3.SystemController"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

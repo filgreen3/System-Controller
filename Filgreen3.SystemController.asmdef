@@ -1,0 +1,14 @@
+{
+    "name": "Filgreen3.SystemController",
+    "rootNamespace": "Filgreen3.SystemController",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
